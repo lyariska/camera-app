@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <title>Kamera iPhone 11</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Video Preview */
+        #videoPreview {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transition: transform 0.3s ease;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Start Screen */
+        .start-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .start-icon {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 2rem;
+        }
+
+        .start-title {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .start-desc {
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 2rem;
+            max-width: 400px;
+            line-height: 1.5;
+        }
+
+        .btn-start {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn-start:active {
+            transform: scale(0.95);
+        }
+
+        /* Loading */
+        .loading-screen {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+            z-index: 100;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Error Screen */
+        .error-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .error-icon {
+            width: 60px;
+            height: 60px;
+            color: #ff3b30;
+            margin-bottom: 1rem;
+        }
+
+        .error-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .error-msg {
+            color: rgba(255,255,255,0.8);
+            text-align: center;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            max-width: 400px;
+        }
+
+        /* Camera UI */
+        .camera-ui {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+        }
+
+        /* Grid Lines */
+        .grid-lines {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            pointer-events: none;
+        }
+
+        .grid-lines div {
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* Top Controls */
+        .top-controls {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .control-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(10px);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .control-btn:active {
+            transform: scale(0.9);
+        }
+
+        .control-btn.active {
+            background: #FFD60A;
+            color: #000;
+        }
+
+        .night-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #FFD60A;
+            color: #000;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 0.75rem;
+        }
+
+        .top-right {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Recording Indicator */
+        .recording-indicator {
+            position: absolute;
+            top: 5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #ff3b30;
+            border-radius: 50px;
+            font-weight: bold;
+        }
+
+        .rec-dot {
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Zoom Controls */
+        .zoom-controls {
+            position: absolute;
+            bottom: 11rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .zoom-btn {
+            padding: 0.5rem 1rem;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(10px);
+            border: none;
+            border-radius: 50px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .zoom-btn:active {
+            transform: scale(0.9);
+        }
+
+        .zoom-btn.active {
+            background: #FFD60A;
+            color: #000;
+        }
+
+        /* Bottom Controls */
+        .bottom-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 2rem 1rem;
+            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+        }
+
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .mode-btn {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding-bottom: 0.25rem;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.active {
+            color: #FFD60A;
+            border-bottom: 2px solid #FFD60A;
+        }
+
+        .main-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 2rem;
+        }
+
+        .gallery-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            border: 2px solid white;
+            background: #333;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .gallery-btn:active {
+            transform: scale(0.9);
+        }
+
+        .gallery-btn img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .capture-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 6px solid white;
+            background: transparent;
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .capture-btn:active {
+            transform: scale(0.9);
+        }
+
+        .capture-inner {
+            width: 100%;
+            height: 100%;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .capture-inner.video {
+            width: 60px;
+            height: 60px;
+            background: #ff3b30;
+        }
+
+        .capture-inner.recording {
+            width: 30px;
+            height: 30px;
+            background: #ff3b30;
+            border-radius: 4px;
+        }
+
+        .switch-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(10px);
+            border: none;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .switch-btn:active {
+            transform: scale(0.9);
+        }
+
+        /* Gallery Modal */
+        .gallery-modal {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .gallery-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            border-bottom: 1px solid #333;
+        }
+
+        .gallery-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+
+        .close-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .close-btn:active {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .gallery-grid {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+
+        .gallery-item {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #333;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .gallery-item img,
+        .gallery-item video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .download-btn {
+            position: absolute;
+            bottom: 0.5rem;
+            right: 0.5rem;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.6);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .download-btn:active {
+            transform: scale(0.9);
+        }
+
+        .empty-gallery {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: rgba(255,255,255,0.5);
+        }
+
+        canvas {
+            display: none;
+        }
+
+        /* Icons */
+        .icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .icon-sm {
+            width: 16px;
+            height: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Start Screen -->
+        <div id="startScreen" class="start-screen">
+            <svg class="start-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            <h1 class="start-title">Kamera iPhone 11</h1>
+            <p class="start-desc">Aplikasi kamera dengan fitur Night Mode, HDR, dan perekaman video berkualitas tinggi</p>
+            <button class="btn-start" onclick="startCamera()">Buka Kamera</button>
+        </div>
+
+        <!-- Loading Screen -->
+        <div id="loadingScreen" class="loading-screen hidden">
+            <div>
+                <div class="spinner"></div>
+                <p style="margin-top: 1rem;">Membuka kamera...</p>
+            </div>
+        </div>
+
+        <!-- Error Screen -->
+        <div id="errorScreen" class="error-screen hidden">
+            <svg class="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <h2 class="error-title">Gagal Mengakses Kamera</h2>
+            <p class="error-msg" id="errorMsg"></p>
+            <button class="btn-start" onclick="startCamera()">Coba Lagi</button>
+        </div>
+
+        <!-- Video Preview -->
+        <video id="videoPreview" autoplay playsinline muted></video>
+        <canvas id="canvas"></canvas>
+
+        <!-- Camera UI -->
+        <div id="cameraUI" class="camera-ui hidden">
+            <!-- Grid Lines -->
+            <div id="gridLines" class="grid-lines hidden">
+                <div></div><div></div><div></div>
+                <div></div><div></div><div></div>
+                <div></div><div></div><div></div>
+            </div>
+
+            <!-- Top Controls -->
+            <div class="top-controls">
+                <button class="control-btn" onclick="cycleFlash()">
+                    <svg id="flashIcon" class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </button>
+
+                <div id="nightBadge" class="night-badge hidden">
+                    <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                    </svg>
+                    NIGHT
+                </div>
+
+                <div class="top-right">
+                    <button class="control-btn" id="nightBtn" onclick="toggleNightMode()">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                        </svg>
+                    </button>
+                    <button class="control-btn" id="gridBtn" onclick="toggleGrid()">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recording Indicator -->
+            <div id="recordingIndicator" class="recording-indicator hidden">
+                <div class="rec-dot"></div>
+                <span id="recordingTime">00:00</span>
+            </div>
+
+            <!-- Zoom Controls -->
+            <div class="zoom-controls">
+                <button class="zoom-btn" id="zoom05" onclick="setZoom(0.5)">0.5×</button>
+                <button class="zoom-btn active" id="zoom1" onclick="setZoom(1)">1×</button>
+            </div>
+
+            <!-- Bottom Controls -->
+            <div class="bottom-controls">
+                <div class="mode-selector">
+                    <button class="mode-btn active" id="photoMode" onclick="setMode('photo')">FOTO</button>
+                    <button class="mode-btn" id="videoMode" onclick="setMode('video')">VIDEO</button>
+                </div>
+
+                <div class="main-controls">
+                    <button class="gallery-btn" id="galleryBtn" onclick="openGallery()">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                    </button>
+
+                    <button class="capture-btn" id="captureBtn" onclick="handleCapture()">
+                        <div class="capture-inner" id="captureInner"></div>
+                    </button>
+
+                    <button class="switch-btn" onclick="switchCamera()">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gallery Modal -->
+        <div id="galleryModal" class="gallery-modal hidden">
+            <div class="gallery-header">
+                <h2 class="gallery-title">Galeri (<span id="mediaCount">0</span>)</h2>
+                <button class="close-btn" onclick="closeGallery()">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="gallery-grid" id="galleryGrid">
+                <div class="empty-gallery">
+                    <svg style="width: 60px; height: 60px; margin-bottom: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <p>Belum ada foto atau video</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let stream = null;
+        let mediaRecorder = null;
+        let recordingInterval = null;
+        let chunks = [];
+        let capturedMedia = [];
+        let currentMode = 'photo';
+        let currentFacingMode = 'environment';
+        let currentZoom = 1;
+        let isRecording = false;
+        let recordingSeconds = 0;
+        let flashMode = 'off';
+        let nightMode = false;
+        let gridMode = false;
+
+        // Start Camera
+        async function startCamera() {
+            const startScreen = document.getElementById('startScreen');
+            const loadingScreen = document.getElementById('loadingScreen');
+            const errorScreen = document.getElementById('errorScreen');
+            const cameraUI = document.getElementById('cameraUI');
+            const videoPreview = document.getElementById('videoPreview');
+
+            startScreen.classList.add('hidden');
+            errorScreen.classList.add('hidden');
+            loadingScreen.classList.remove('hidden');
+
+            try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('Browser tidak mendukung akses kamera');
+                }
+
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
+
+                const constraints = {
+                    video: {
+                        facingMode: currentFacingMode,
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    audio: false
+                };
+
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoPreview.srcObject = stream;
+
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => reject(new Error('Timeout')), 10000);
+                    videoPreview.onloadedmetadata = () => {
+                        clearTimeout(timeout);
+                        resolve();
+                    };
+                });
+
+                await videoPreview.play();
+
+                loadingScreen.classList.add('hidden');
+                cameraUI.classList.remove('hidden');
+
+            } catch (err) {
+                console.error('Camera error:', err);
+                loadingScreen.classList.add('hidden');
+                errorScreen.classList.remove('hidden');
+                
+                let errorMsg = 'Gagal mengakses kamera. ';
+                if (err.name === 'NotAllowedError') {
+                    errorMsg += 'Izin kamera ditolak. Izinkan akses kamera di pengaturan browser.';
+                } else if (err.name === 'NotFoundError') {
+                    errorMsg += 'Kamera tidak ditemukan.';
+                } else if (err.name === 'NotReadableError') {
+                    errorMsg += 'Kamera sedang digunakan aplikasi lain.';
+                } else {
+                    errorMsg += err.message;
+                }
+                
+                document.getElementById('errorMsg').textContent = errorMsg;
+            }
+        }
+
+        // Switch Camera
+        function switchCamera() {
+            if (isRecording) return;
+            currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+            startCamera();
+        }
+
+        // Capture Photo
+        function capturePhoto() {
+            const video = document.getElementById('videoPreview');
+            const canvas = document.getElementById('canvas');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+
+            // Night Mode Effect
+            if (nightMode) {
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    data[i] = Math.min(255, data[i] * 1.3);
+                    data[i + 1] = Math.min(255, data[i + 1] * 1.3);
+                    data[i + 2] = Math.min(255, data[i + 2] * 1.3);
+                }
+                ctx.putImageData(imageData, 0, 0);
+            }
+
+            // Flash Effect
+            if (flashMode === 'on' || (flashMode === 'auto' && nightMode)) {
+                const flash = document.createElement('div');
+                flash.style.cssText = 'position:fixed;inset:0;background:white;z-index:999;';
+                document.body.appendChild(flash);
+                setTimeout(() => document.body.removeChild(flash), 100);
+            }
+
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            capturedMedia.push({
+                type: 'photo',
+                url: dataUrl,
+                timestamp: Date.now()
+            });
+
+            updateGalleryThumbnail();
+            if (navigator.vibrate) navigator.vibrate(50);
+        }
+
+        // Toggle Recording
+        async function toggleRecording() {
+            if (!isRecording) {
+                try {
+                    if (stream) {
+                        stream.getTracks().forEach(track => track.stop());
+                    }
+
+                    const constraints = {
+                        video: {
+                            facingMode: currentFacingMode,
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        },
+                        audio: true
+                    };
+
+                    stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    document.getElementById('videoPreview').srcObject = stream;
+                    await document.getElementById('videoPreview').play();
+
+                    chunks = [];
+                    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp8') 
+                        ? 'video/webm;codecs=vp8'
+                        : 'video/webm';
+
+                    mediaRecorder = new MediaRecorder(stream, { mimeType });
+                    
+                    mediaRecorder.ondataavailable = (e) => {
+                        if (e.data && e.data.size > 0) {
+                            chunks.push(e.data);
+                        }
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        const blob = new Blob(chunks, { type: mimeType });
+                        const url = URL.createObjectURL(blob);
+                        capturedMedia.push({
+                            type: 'video',
+                            url: url,
+                            timestamp: Date.now()
+                        });
+                        updateGalleryThumbnail();
+                        stream.getTracks().forEach(track => track.stop());
+                        startCamera();
+                    };
+
+                    mediaRecorder.start(100);
+                    isRecording = true;
+                    recordingSeconds = 0;
+
+                    document.getElementById('recordingIndicator').classList.remove('hidden');
+                    document.getElementById('captureInner').classList.add('recording');
+
+                    recordingInterval = setInterval(() => {
+                        recordingSeconds++;
+                        const mins = Math.floor(recordingSeconds / 60);
+                        const secs = recordingSeconds % 60;
+                        document.getElementById('recordingTime').textContent = 
+                            `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                    }, 1000);
+
+                    if (navigator.vibrate) navigator.vibrate([50, 100, 50]);
+
+                } catch (err) {
+                    console.error('Recording error:', err);
+                    alert('Gagal merekam: ' + err.message);
+                }
+            } else {
+                if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                }
+                isRecording = false;
+                clearInterval(recordingInterval);
+                document.getElementById('recordingIndicator').classList.add('hidden');
+                document.getElementById('captureInner').classList.remove('recording');
+                if (navigator.vibrate) navigator.vibrate(50);
+            }
+        }
+
+        // Handle Capture
+        function handleCapture() {
+            if (currentMode === 'photo') {
+                capturePhoto();
+            } else {
+                toggleRecording();
+            }
+        }
+
+        // Set Mode
+        function setMode(mode) {
+            if (isRecording) return;
+            currentMode = mode;
+            document.getElementById('photoMode').classList.toggle('active', mode === 'photo');
+            document.getElementById('videoMode').classList.toggle('active', mode === 'video');
+            
+            const inner = document.getElementById('captureInner');
+            if (mode === 'video') {
+                inner.classList.add('video');
+            } else {
+                inner.classList.remove('video');
+            }
+        }
+
+        // Set Zoom
+        function setZoom(zoom) {
+            currentZoom = zoom;
+            document.getElementById('videoPreview').style.transform = `scale(${zoom})`;
+            document.getElementById('zoom05').classList.toggle('active', zoom === 0.5);
+            document.getElementById('zoom1').classList.toggle('active', zoom === 1);
+        }
+
+        // Flash
+        function cycleFlash() {
+            const modes = ['off', 'auto', 'on'];
+            const index = modes.indexOf(flashMode);
+            flashMode = modes[(index + 1) % 3];
+            
+            const icon = document.getElementById('flashIcon');
+            if (flashMode === 'off') {
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>';
+            } else if (flashMode === 'on') {
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>';
+                icon.style.fill = '#FFD60A';
+            } else {
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>';
+                icon.style.fill = 'none';
+            }
+        }
+
+        // Night Mode
+        function toggleNightMode() {
+            nightMode = !nightMode;
+            document.getElementById('nightBtn').classList.toggle('active', nightMode);
+            document.getElementById('nightBadge').classList.toggle('hidden', !nightMode);
+        }
+
+        // Grid
+        function toggleGrid() {
+            gridMode = !gridMode;
+            document.getElementById('gridBtn').classList.toggle('active', gridMode);
+            document.getElementById('gridLines').classList.toggle('hidden', !gridMode);
+        }
+
+        // Gallery
+        function updateGalleryThumbnail() {
+            const btn = document.getElementById('galleryBtn');
+            if (capturedMedia.length > 0) {
+                const latest = capturedMedia[capturedMedia.length - 1];
+                if (latest.type === 'photo') {
+                    btn.innerHTML = `<img src="${latest.url}" alt="Latest">`;
+                } else {
+                    btn.innerHTML = '<svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>';
+                }
+            }
+        }
+
+        function openGallery() {
+            document.getElementById('galleryModal').classList.remove('hidden');
+            document.getElementById('mediaCount').textContent = capturedMedia.length;
+            
+            const grid = document.getElementById('galleryGrid');
+            if (capturedMedia.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-gallery">
+                        <svg style="width: 60px; height: 60px; margin-bottom: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <p>Belum ada foto atau video</p>
+                    </div>
+                `;
+            } else {
+                grid.innerHTML = '';
+                capturedMedia.slice().reverse().forEach((media, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'gallery-item';
+                    
+                    if (media.type === 'photo') {
+                        item.innerHTML = `
+                            <img src="${media.url}" alt="Photo">
+                            <button class="download-btn" onclick="downloadMedia(${capturedMedia.length - 1 - index})">
+                                <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                </svg>
+                            </button>
+                        `;
+                    } else {
+                        item.innerHTML = `
+                            <video src="${media.url}"></video>
+                            <button class="download-btn" onclick="downloadMedia(${capturedMedia.length - 1 - index})">
+                                <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                </svg>
+                            </button>
+                        `;
+                    }
+                    
+                    grid.appendChild(item);
+                });
+            }
+        }
+
+        function closeGallery() {
+            document.getElementById('galleryModal').classList.add('hidden');
+        }
+
+        function downloadMedia(index) {
+            const media = capturedMedia[index];
+            const a = document.createElement('a');
+            a.href = media.url;
+            a.download = `camera_${media.type}_${new Date(media.timestamp).toISOString()}.${media.type === 'photo' ? 'jpg' : 'webm'}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
